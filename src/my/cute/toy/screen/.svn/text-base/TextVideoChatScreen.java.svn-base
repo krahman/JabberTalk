@@ -1,0 +1,89 @@
+package jp.maltech.nexian.screen;
+
+import jp.maltech.nexian.Nexian;
+
+import com.javaeedev.midp.gtalk.jabber.JabberService;
+import com.sun.lwuit.Command;
+import com.sun.lwuit.Container;
+import com.sun.lwuit.Form;
+import com.sun.lwuit.Image;
+import com.sun.lwuit.Label;
+import com.sun.lwuit.TextArea;
+import com.sun.lwuit.TextField;
+import com.sun.lwuit.events.ActionEvent;
+import com.sun.lwuit.events.ActionListener;
+import com.sun.lwuit.layouts.BorderLayout;
+import com.sun.lwuit.layouts.BoxLayout;
+
+public class TextVideoChatScreen extends Form implements ActionListener{
+	private Nexian nexian;
+	private Command back, send, stop;
+	private JabberService jabberService;
+	private String email;
+	private String msg;
+	private static TextArea chatBoard;
+	private TextField msgcolumn;
+	private Image myimage, buddyimage;
+	private Label chatwith;
+	
+	public TextVideoChatScreen(String title, Nexian n, JabberService jabberService, String email) {
+		// TODO Auto-generated constructor stub
+		this.nexian = n;
+		this.email = email;
+		this.jabberService = jabberService;
+		this.setTitle(title);
+		setLayout(new BorderLayout());
+		// parent container
+		Container body = new Container(new BoxLayout(BoxLayout.Y_AXIS));
+		Container imgContainer = new Container(new BoxLayout(BoxLayout.X_AXIS));
+		Container chatContainer = new Container(new BoxLayout(BoxLayout.Y_AXIS));
+		// chat board
+		chatBoard = new TextArea(10, 20, TextArea.ANY);
+		chatBoard.setEditable(false);
+		chatBoard.setSingleLineTextArea(false);
+		chatwith = new Label("To "+email);		
+		this.msgcolumn = new TextField();
+		
+		chatContainer.addComponent(chatwith);
+		chatContainer.addComponent(chatBoard);
+		chatContainer.addComponent(msgcolumn);
+		
+		body.addComponent(imgContainer);
+		body.addComponent(chatContainer);
+		
+		addComponent(BorderLayout.CENTER, body);
+		
+		this.back = new Command("Back");
+		this.send = new Command("Send");
+		this.stop = new Command("Stop Video");
+		addCommand(back);
+		addCommand(send);
+		addCommand(stop);
+		addCommandListener(this);
+	}
+
+	public void actionPerformed(ActionEvent event) {
+		// TODO Auto-generated method stub
+		String message = "";
+		if (event.getSource().equals(back)){
+			nexian.prevForm();
+		} else if (event.getSource().equals(send)){
+			message = msgcolumn.getText();
+			jabberService.sendMessage(email, msg);
+			showMessage("me: " + message);
+			chatBoard.setSingleLineTextArea(false);
+			msgcolumn.clear();
+		} else if (event.getSource().equals(stop)){
+			System.out.println("Stop Video.");
+		}
+	}
+	
+	public static void showMessage(String message) {
+		if (chatBoard.getText().equals("") || chatBoard.getText() == null) {
+			chatBoard.setText(message);
+		} else {
+			chatBoard.setText(chatBoard.getText() + "\n" + message);
+		}
+	}
+
+}

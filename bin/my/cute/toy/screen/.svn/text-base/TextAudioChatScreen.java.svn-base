@@ -1,0 +1,155 @@
+package jp.maltech.nexian.screen;
+
+import jp.maltech.audiochat.client.NetworkManager;
+import jp.maltech.audiochat.client.Playback;
+import jp.maltech.audiochat.client.Reader;
+import jp.maltech.audiochat.client.Recorder;
+import jp.maltech.audiochat.client.Writer;
+import jp.maltech.nexian.Nexian;
+
+import com.javaeedev.midp.gtalk.jabber.JabberService;
+import com.sun.lwuit.Command;
+import com.sun.lwuit.Container;
+import com.sun.lwuit.Form;
+import com.sun.lwuit.Label;
+import com.sun.lwuit.TextArea;
+import com.sun.lwuit.TextField;
+import com.sun.lwuit.events.ActionEvent;
+import com.sun.lwuit.events.ActionListener;
+import com.sun.lwuit.layouts.BorderLayout;
+import com.sun.lwuit.layouts.BoxLayout;
+
+public class TextAudioChatScreen extends Form implements ActionListener{
+	private Nexian nexian;
+	private Command back, send, stop, start, record;
+	private JabberService jabberService;
+	private String email;
+	private String msg;
+	private static TextArea chatBoard;
+	private TextField msgcolumn;
+	private Label chatwith;
+	// Audio recording fields below
+	private Recorder myRecorder;
+	private Playback myPlayer;
+	private NetworkManager myNet;
+	private Reader myR;
+	private Writer myW;
+	
+	public TextAudioChatScreen(String title, Nexian n, JabberService jabberService, String email) {
+		// TODO Auto-generated constructor stub
+		setTitle(title);
+		this.nexian = n;
+		this.jabberService = jabberService;
+		this.email = email;
+		setLayout(new BorderLayout());
+		// parent container
+		Container body = new Container(new BoxLayout(BoxLayout.Y_AXIS));
+		
+		// chat board
+		chatBoard = new TextArea(10, 20, TextArea.ANY);
+		chatBoard.setEditable(false);
+		chatBoard.setSingleLineTextArea(false);
+		chatwith = new Label("To "+email);
+		this.msgcolumn = new TextField();
+		
+		body.addComponent(chatwith);
+		body.addComponent(chatBoard);
+		body.addComponent(msgcolumn);
+		
+		addComponent(BorderLayout.CENTER, body);
+		
+		this.back = new Command("Back");
+		this.send = new Command("Send");
+		this.stop = new Command("Stop Audio");
+		this.start = new Command("Start");
+		this.record = new Command("Record");
+		
+		addCommand(back);
+		addCommand(start);
+		addCommand(record);
+		addCommand(send);		
+		addCommand(stop);
+		addCommandListener(this);
+		
+	}
+
+	public void actionPerformed(ActionEvent event) {
+		// TODO Auto-generated method stub
+		String message ="";
+		if (event.getSource().equals(back)){
+			nexian.prevForm();
+		} else if (event.getSource().equals(send)){
+			message = msgcolumn.getText();
+			jabberService.sendMessage(email, msg);	
+			showMessage("me: " + message);			
+			msgcolumn.clear();
+		} else if (event.getSource().equals(stop)){
+			handleStop();
+			System.out.println("Stop Audio.");
+		} else if (event.getSource().equals(start)){
+			handleStart();
+			System.out.println("Start Audio.");
+		} else if (event.getSource().equals(record)){
+			handleRecord();
+			System.out.println("Record Audio.");
+		}
+	}
+
+	public static void showMessage(String message) {
+		if (chatBoard.getText().equals("") || chatBoard.getText() == null) {
+			chatBoard.setText(message);
+		} else {
+			chatBoard.setText(chatBoard.getText() + "\n" + message);
+		}
+	}
+	
+	// Audio recording
+	private void handleStop() {
+		//alert.removeCommand(stopCommand);
+		System.out.println("handling Stop");
+		myW.toggleRecord(false);
+	}
+	
+	private void handleRecord() {
+		//alert.setString("START recording...");
+		//alert.removeCommand(recordCommand);
+		//alert.addCommand(stopCommand);
+		System.out.println("handling Record");
+		recordAndSend();
+	}
+	
+	private void handleStart() {
+		//alert.removeCommand(startCommand);
+		new Thread() {
+			public void run() {
+				startNetworking();
+				startRecorderPlayer();
+				startReaderWriter();
+			}
+		}.start();
+	}
+	
+	private void recordAndSend() {
+		myW.toggleRecord(true);
+	}
+	
+	private void startRecorderPlayer() {
+		myPlayer = new Playback();
+		//myPlayer.setup("audio/basic");
+		myRecorder = new Recorder();
+		//myRecorder.setup("capture://audio?encoding=pcm&rate=8000");
+		myRecorder.initialize();
+	}
+	
+	private void startNetworking() {
+		myNet = new NetworkManager(false);
+		myNet.setup();
+	}
+	
+	private void startReaderWriter() {
+		myR = new Reader(myNet, myPlayer, null);
+		myR.start();
+		myW = new Writer(myNet, myRecorder);
+		myW.start();
+	}
+}
